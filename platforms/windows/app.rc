@@ -1,0 +1,2 @@
+#define IDI_APP_ICON 201
+IDI_APP_ICON ICON "../../Resources/kitty-litter.ico"

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Kitty Litter
+Comment=Review large stale files and quarantine them safely
+Exec=kitty-litter
+Icon=kitty-litter
+Terminal=false
+Categories=Utility;System;FileTools;
+StartupNotify=true
