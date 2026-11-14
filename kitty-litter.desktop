@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Kitty Litter
+Comment=Review old large files and manage quarantine
+Exec=kitty-litter
+Icon=user-trash
+Terminal=false
+Categories=Utility;System;

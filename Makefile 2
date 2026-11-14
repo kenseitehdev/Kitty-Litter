@@ -1,0 +1,40 @@
+.DEFAULT_GOAL := all
+CC ?= cc
+PKG_CONFIG ?= pkg-config
+PREFIX ?= /usr/local
+DESTDIR ?=
+OUT ?= build/native
+PACKAGES = gtk+-3.0 ayatana-appindicator3-0.1 gio-2.0
+CFLAGS ?= -O2 -g
+WARN = -std=c11 -Wall -Wextra -Wpedantic
+.PHONY: all check-deps test elf64 install clean macos
+all: $(OUT)/kitty-litter
+check-deps:
+	@$(PKG_CONFIG) --exists $(PACKAGES) || { echo 'Install GTK3 and Ayatana AppIndicator3 development packages; see README.md.' >&2; exit 1; }
+$(OUT)/kitty-litter: src/main.c src/cleanup.c src/cleanup.h Makefile | check-deps
+	@mkdir -p "$(@D)"
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(WARN) $$($(PKG_CONFIG) --cflags $(PACKAGES)) src/main.c src/cleanup.c $(LDFLAGS) $$($(PKG_CONFIG) --libs $(PACKAGES)) -o "$@"
+ifeq ($(shell uname -m),aarch64)
+ELF64_CC ?= cc
+ELF64_PKG_CONFIG ?= pkg-config
+else
+ELF64_CC ?= aarch64-linux-gnu-gcc
+ELF64_PKG_CONFIG ?= aarch64-linux-gnu-pkg-config
+endif
+elf64:
+	@$(ELF64_CC) -dumpmachine | grep -Eq '(aarch64|arm64).*linux' || { echo 'Requires an AArch64 Linux compiler.' >&2; exit 1; }
+	$(MAKE) CC="$(ELF64_CC)" PKG_CONFIG="$(ELF64_PKG_CONFIG)" OUT=build/arm64 all
+test:
+	@mkdir -p build/tests
+	$(CC) $(CFLAGS) $(WARN) -Werror -Isrc tests/core_test.c src/cleanup.c -o build/tests/core_test
+	python3 tests/run.py build/tests/core_test
+install: all
+	install -d "$(DESTDIR)$(PREFIX)/bin" "$(DESTDIR)$(PREFIX)/share/applications"
+	install -m 755 "$(OUT)/kitty-litter" "$(DESTDIR)$(PREFIX)/bin/kitty-litter"
+	install -m 644 kitty-litter.desktop "$(DESTDIR)$(PREFIX)/share/applications/kitty-litter.desktop"
+macos:
+	@test "$$(uname -s)" = Darwin || { echo 'Requires macOS.' >&2; exit 1; }
+	@mkdir -p build/macos
+	swiftc -parse-as-library -O -framework AppKit -framework SwiftUI macos/KittyLitter.swift -o build/macos/kitty-litter
+clean:
+	rm -rf build
